@@ -285,6 +285,16 @@ def export_vcf():
     )
     return response
 
+# ========== STATS ROUTE (FIX THE 404 ERROR) ==========
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    """Get contact statistics for the frontend"""
+    try:
+        total = Contact.query.count()
+        return jsonify({'total': total})
+    except Exception as e:
+        return jsonify({'total': 0})
+
 @app.route('/admin/delete/<int:contact_id>', methods=['DELETE'])
 @login_required
 def delete_contact(contact_id):
