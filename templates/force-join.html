@@ -2,251 +2,219 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Join First · Vortex VCF</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Join Channel · Vortex VCF</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        .force-join-container {
-            max-width: 400px;
-            margin: 0 auto;
-            text-align: center;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        .join-required {
-            background: rgba(255, 0, 0, 0.1);
-            border: 1px solid rgba(255, 0, 0, 0.2);
-            border-radius: 100px;
-            padding: 8px 16px;
-            color: #ff6b6b;
-            font-size: 0.85rem;
-            display: inline-block;
-            margin-bottom: 20px;
-        }
-        
-        .telegram-btn {
+
+        body {
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            padding: 16px;
+        }
+
+        /* Background image */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding: 18px;
+            height: 100%;
+            background: url('/static/bg.png') center/cover no-repeat;
+            opacity: 0.4;
+            z-index: -1;
+        }
+
+        .card {
+            max-width: 360px;
+            width: 100%;
+            background: rgba(20, 20, 20, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 28px;
+            padding: 32px 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 500;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+            text-align: center;
+            margin-bottom: 28px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .lock-icon {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .lock-icon span {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+
+        .message {
+            background: rgba(0, 136, 204, 0.1);
+            border: 1px solid rgba(0, 136, 204, 0.2);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .message p {
+            color: white;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        .channel-btn {
+            display: block;
+            width: 100%;
             background: #0088cc;
             color: white;
             text-decoration: none;
+            padding: 16px 20px;
             border-radius: 60px;
             font-weight: 600;
-            font-size: 1.2rem;
-            margin: 25px 0 15px;
-            border: 2px solid rgba(255,255,255,0.2);
-            transition: all 0.3s ease;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.2s ease;
         }
-        
-        .telegram-btn:hover {
-            background: #00aaff;
-            transform: scale(1.02);
-            box-shadow: 0 10px 30px rgba(0,136,204,0.4);
+
+        .channel-btn:active {
+            transform: scale(0.98);
+            background: #0077b3;
         }
-        
-        .verify-section {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        
+
         .verify-btn {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #00c851, #007e33);
-            border: none;
-            border-radius: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
-            font-weight: 700;
-            font-size: 1.1rem;
+            padding: 16px 20px;
+            border-radius: 60px;
+            font-weight: 500;
+            font-size: 1rem;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 5px 20px rgba(0,200,81,0.3);
+            transition: all 0.2s ease;
+            margin-bottom: 20px;
         }
-        
-        .verify-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0,200,81,0.5);
+
+        .verify-btn:active {
+            background: rgba(255, 255, 255, 0.15);
         }
-        
+
         .verify-btn:disabled {
-            opacity: 0.6;
-            transform: none;
-            box-shadow: none;
+            opacity: 0.5;
             cursor: not-allowed;
         }
-        
-        .steps {
-            text-align: left;
-            margin: 30px 0;
-            padding: 25px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.05);
+
+        .footer-note {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.7rem;
+            text-align: center;
+            letter-spacing: 0.5px;
         }
-        
-        .step {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 18px;
-            color: rgba(255,255,255,0.9);
-        }
-        
-        .step:last-child {
-            margin-bottom: 0;
-        }
-        
-        .step-number {
-            width: 32px;
-            height: 32px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            font-weight: bold;
-            color: #0088cc;
-        }
-        
-        .note {
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px solid rgba(255, 193, 7, 0.2);
-            border-radius: 12px;
-            padding: 12px;
-            margin: 20px 0;
-            color: #ffc107;
-            font-size: 0.9rem;
-        }
-        
-        .loading-spinner {
+
+        .spinner {
             display: inline-block;
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             border: 2px solid rgba(255,255,255,0.3);
             border-radius: 50%;
             border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin-left: 10px;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
         }
-        
+
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
-        .channel-link {
-            color: #0088cc;
-            font-weight: bold;
-            text-decoration: none;
-        }
-        
-        .channel-link:hover {
-            text-decoration: underline;
-        }
-        
-        .success-check {
-            color: #00c851;
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-        }
+
+        /* No mention of bypass - only join channel */
     </style>
 </head>
 <body>
-    <div class="container force-join-container">
-        <div class="glass-card">
-            <h1>Vortex VCF</h1>
-            <p class="subtitle">join channel to continue</p>
-            
-            <div class="join-required">🔒 CHANNEL REQUIRED</div>
-            
-            <div class="steps">
-                <div class="step">
-                    <span class="step-number">1</span>
-                    <span>Join Telegram channel <a href="https://t.me/vortexvcf" target="_blank" class="channel-link">@vortexvcf</a></span>
-                </div>
-                <div class="step">
-                    <span class="step-number">2</span>
-                    <span>Click the green verify button below</span>
-                </div>
-                <div class="step">
-                    <span class="step-number">3</span>
-                    <span>Drop your contact & get exclusive VCF</span>
-                </div>
-            </div>
-            
-            <div class="note">
-                ⭐ <strong>No Telegram account?</strong> No problem! Just click verify to continue.
-            </div>
-            
-            <a href="https://t.me/vortexvcf" target="_blank" class="telegram-btn">
-                <span>📱</span> JOIN TELEGRAM CHANNEL
-                <span>→</span>
-            </a>
-            
-            <div class="verify-section">
-                <p style="color:rgba(255,255,255,0.7); margin-bottom:15px; font-size:0.95rem;">
-                    ✅ Already joined? Click below:
-                </p>
-                <button onclick="verifyJoin()" class="verify-btn" id="verifyBtn">
-                    ✓ I'VE JOINED · CONTINUE
-                </button>
-                <p style="color:rgba(255,255,255,0.4); font-size:0.8rem; margin-top:12px;">
-                    By clicking, you confirm you've joined @vortexvcf
-                </p>
-            </div>
-            
-            <footer>Vortex VCF · exclusive content</footer>
+    <div class="card">
+        <div class="lock-icon">
+            <span>🔒</span>
+        </div>
+        
+        <h1>Vortex VCF</h1>
+        <div class="subtitle">channel access required</div>
+
+        <div class="message">
+            <p>Join our Telegram channel to access the Vortex VCF form</p>
+        </div>
+
+        <a href="https://t.me/vortexvcf" target="_blank" class="channel-btn">
+            📱 Join @vortexvcf
+        </a>
+
+        <button class="verify-btn" id="verifyBtn" onclick="verifyJoin()">
+            I've joined · Continue
+        </button>
+
+        <div class="footer-note">
+            channel members only
         </div>
     </div>
-    
+
     <script>
         async function verifyJoin() {
             const btn = document.getElementById('verifyBtn');
-            const originalText = btn.textContent;
+            const originalText = btn.innerText;
             
             btn.disabled = true;
-            btn.innerHTML = 'VERIFYING <span class="loading-spinner"></span>';
+            btn.innerHTML = 'Verifying <span class="spinner"></span>';
             
             try {
                 const response = await fetch('/verify-join', {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Content-Type': 'application/json' }
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Show success message briefly before redirect
-                    btn.innerHTML = '✓ SUCCESS! REDIRECTING...';
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 500);
+                    window.location.href = data.redirect;
                 } else {
-                    alert('Error: ' + (data.error || 'Please try again'));
+                    alert('Please join the channel first');
                     btn.disabled = false;
-                    btn.textContent = originalText;
+                    btn.innerText = originalText;
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('Network error. Please check your connection and try again.');
+                alert('Error. Please try again.');
                 btn.disabled = false;
-                btn.textContent = originalText;
+                btn.innerText = originalText;
             }
         }
-
-        // Add enter key support
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                verifyJoin();
-            }
-        });
     </script>
 </body>
 </html>
