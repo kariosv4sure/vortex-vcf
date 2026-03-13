@@ -1,5 +1,6 @@
 Flask
 Flask-SQLAlchemy
+Flask-Limiter
 Flask-Login
 python-dotenv
 vobject
