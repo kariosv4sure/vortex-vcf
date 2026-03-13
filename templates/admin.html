@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vortex · admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .admin-container { max-width: 360px; margin: 0 auto; }
+        .admin-card { background: rgba(10, 10, 10, 0.7); backdrop-filter: blur(20px); }
+        .admin-input { background: rgba(255, 255, 255, 0.03); }
+        .admin-btn {
+            width: 100%; padding: 14px; background: rgba(255, 255, 255, 0.9);
+            border: none; border-radius: 100px; color: #0a0a0a;
+            font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem;
+            cursor: pointer; transition: all 0.2s ease; margin-top: 20px;
+        }
+        .admin-btn:hover { background: white; transform: translateY(-2px); }
+        .error { color: #ff8a8a; text-align: center; margin: 15px 0; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="container admin-container">
+        <div class="glass-card admin-card">
+            <h1 style="font-size:1.8rem;">admin</h1>
+            <p class="subtitle">vortex vcf · secure</p>
+            
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+            
+            <form method="POST">
+                <div class="input-group">
+                    <input type="text" name="username" class="admin-input" placeholder="username" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" class="admin-input" placeholder="password" required>
+                </div>
+                <button type="submit" class="admin-btn">access →</button>
+            </form>
+            
+            <footer style="margin-top:20px;">◇ werkzeug security · protected ◇</footer>
+        </div>
+    </div>
+    
+    <script>
+        // Maximum security
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || e.key === 'F5') {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>

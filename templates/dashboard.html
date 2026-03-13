@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Vortex · Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            min-height: 100vh;
+            background: #0a0a0a;
+            font-family: 'Inter', sans-serif;
+            padding: 15px;
+            margin: 0;
+        }
+        
+        /* Background image */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('/static/bg.png') no-repeat center center/cover;
+            filter: brightness(0.5);
+            z-index: -2;
+        }
+        
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: -1;
+        }
+        
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 10px;
+        }
+        
+        /* HEADER - Responsive */
+        .dashboard-header {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .dashboard-header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 500;
+            font-size: clamp(1.5rem, 5vw, 2rem);
+            color: white;
+            margin: 0;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .logout-link {
+            padding: 10px 22px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 100px;
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            white-space: nowrap;
+        }
+        
+        .logout-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+        
+        /* STATS GRID - FULLY RESPONSIVE */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px 12px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.07);
+        }
+        
+        .stat-number {
+            font-size: clamp(1.8rem, 4vw, 2.2rem);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 500;
+            color: white;
+            line-height: 1.2;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* ACTION BAR - Responsive */
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .action-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 100px;
+            color: #0a0a0a;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 1 auto;
+        }
+        
+        .action-btn.outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .action-btn.outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* CONTACTS SECTION - FULLY RESPONSIVE */
+        .contacts-section {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .contacts-section h2 {
+            font-size: 1.2rem;
+            font-weight: 400;
+            margin-bottom: 20px;
+            color: white;
+            padding-left: 5px;
+        }
+        
+        /* TABLE CONTAINER - HORIZONTAL SCROLL ON MOBILE */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 16px;
+        }
+        
+        table {
+            width: 100%;
+            min-width: 600px; /* Ensures table doesn't squish too much */
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+        }
+        
+        th {
+            text-align: left;
+            padding: 15px 12px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 400;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+        
+        td {
+            padding: 15px 12px;
+            color: rgba(255, 255, 255, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .delete-btn {
+            padding: 6px 16px;
+            background: rgba(255, 107, 107, 0.15);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 100px;
+            color: #ff8a8a;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .delete-btn:hover {
+            background: rgba(255, 107, 107, 0.25);
+        }
+        
+        .timestamp {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 600px) {
+            .dashboard {
+                padding: 10px 5px;
+            }
+            
+            .dashboard-header {
+                margin-bottom: 20px;
+            }
+            
+            .stats-grid {
+                gap: 10px;
+            }
+            
+            .stat-item {
+                padding: 15px 8px;
+            }
+            
+            .action-bar {
+                gap: 8px;
+            }
+            
+            .action-btn {
+                padding: 10px 18px;
+                font-size: 0.8rem;
+                flex: 1 1 auto;
+            }
+            
+            .contacts-section {
+                padding: 15px;
+            }
+            
+            .contacts-section h2 {
+                font-size: 1rem;
+                margin-bottom: 15px;
+            }
+            
+            /* Better touch scrolling */
+            .table-container {
+                margin: 0 -5px;
+                padding: 0 5px;
+            }
+            
+            table {
+                font-size: 0.75rem;
+            }
+            
+            th, td {
+                padding: 12px 8px;
+            }
+        }
+        
+        /* Small phones */
+        @media (max-width: 400px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .action-bar {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                width: 100%;
+            }
+        }
+        
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="dashboard-header">
+            <h1>Vortex VCF</h1>
+            <a href="{{ url_for('logout') }}" class="logout-link">Logout →</a>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">{{ total }}</div>
+                <div class="stat-label">Total Contacts</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ today }}</div>
+                <div class="stat-label">Added Today</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ recent|length }}</div>
+                <div class="stat-label">Recent</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ total // 10 + 1 }}k</div>
+                <div class="stat-label">Est. Views</div>
+            </div>
+        </div>
+        
+        <div class="action-bar">
+            <a href="{{ url_for('export_csv') }}" class="action-btn">📥 Export CSV</a>
+            <a href="{{ url_for('export_vcf') }}" class="action-btn">📇 Export VCF</a>
+            <button onclick="refreshContacts()" class="action-btn outline">↻ Refresh</button>
+        </div>
+        
+        <div class="contacts-section">
+            <h2>Recent Contacts</h2>
+            <div class="table-container">
+                <table id="contacts-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Phone</th>
+                            <th>Time</th>
+                            <th>IP Address</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for contact in recent %}
+                        <tr id="contact-{{ contact.id }}">
+                            <td><strong>{{ contact.name }}</strong></td>
+                            <td>{{ contact.phone }}</td>
+                            <td class="timestamp">{{ contact.timestamp.strftime('%H:%M · %d/%m/%y') }}</td>
+                            <td class="timestamp">{{ contact.ip_address or '—' }}</td>
+                            <td>
+                                <button onclick="deleteContact({{ contact.id }})" class="delete-btn">Delete</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Security
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) e.preventDefault();
+        });
+        
+        async function deleteContact(id) {
+            if (!confirm('Delete this contact?')) return;
+            try {
+                const response = await fetch(`/admin/delete/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    document.getElementById(`contact-${id}`).remove();
+                }
+            } catch (error) {
+                alert('Error deleting contact');
+            }
+        }
+        
+        async function refreshContacts() {
+            try {
+                const response = await fetch('/admin/api/contacts');
+                const contacts = await response.json();
+                const tbody = document.querySelector('#contacts-table tbody');
+                tbody.innerHTML = '';
+                
+                contacts.slice(0, 15).forEach(c => {
+                    const row = tbody.insertRow();
+                    row.id = `contact-${c.id}`;
+                    const date = new Date(c.timestamp);
+                    const timeStr = `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')} · ${date.getDate().toString().padStart(2,'0')}/${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getFullYear().toString().slice(-2)}`;
+                    
+                    row.innerHTML = `
+                        <td><strong>${c.name}</strong></td>
+                        <td>${c.phone}</td>
+                        <td class="timestamp">${timeStr}</td>
+                        <td class="timestamp">${c.ip_address || '—'}</td>
+                        <td><button onclick="deleteContact(${c.id})" class="delete-btn">Delete</button></td>
+                    `;
+                });
+            } catch (error) {
+                console.error('Refresh failed');
+            }
+        }
+    </script>
+</body>
+</html>

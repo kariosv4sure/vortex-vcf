@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vortex VCF · Join The Movement</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <!-- HEADING - Capital V -->
+            <h1>Vortex VCF</h1>
+            
+            <!-- TYPEWRITER EFFECT - HYPE BUILDER! -->
+            <div class="typewriter-container">
+                <span class="typewriter-text" id="typewriter"></span>
+            </div>
+            
+            <!-- LIVE COUNTER - Smaller numbers now -->
+            <div class="live-counter" id="liveCounter">
+                <span class="counter-number" id="counterNumber">{{ total_contacts }}</span>
+                <span class="counter-text">people already in the vortex 🔥</span>
+            </div>
+            
+            <!-- Loading spinner -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+            </div>
+            
+            <!-- Form Section - Capital placeholders -->
+            <div id="formSection">
+                <div class="input-group">
+                    <input type="text" id="nameInput" placeholder="Your Name" required>
+                </div>
+                <div class="input-group">
+                    <input type="tel" id="numberInput" placeholder="Phone Number" required>
+                </div>
+                <button class="submit-btn" onclick="submitContact()">Enter Vortex →</button>
+            </div>
+
+            <!-- Success & Channel Section - SUPER VISIBLE JOIN BUTTON -->
+            <div id="channelSection" class="channel-section hidden">
+                <div class="success-message">✓ YOU'RE IN THE VORTEX! 🌀</div>
+                
+                <!-- MEGA VISIBLE JOIN BUTTON - A BLIND PERSON CAN SEE THIS -->
+                <a href="https://t.me/vortexvcf" target="_blank" class="mega-join-btn">
+                    <span class="join-pulse">🔴 LIVE</span>
+                    JOIN CHANNEL NOW
+                    <span class="join-arrow">→</span>
+                </a>
+                
+                <div class="vcf-soon">
+                    <span>◇</span> VCF DROPPING SOON <span>◇</span>
+                </div>
+                
+                <!-- Counter shows again with updated number -->
+                <div class="live-counter">
+                    <span class="counter-number" id="updatedCounterNumber">{{ total_contacts }}</span>
+                    <span class="counter-text">people in the vortex 🚀</span>
+                </div>
+            </div>
+            
+            <!-- Error message -->
+            <div id="errorMessage" class="error-message hidden"></div>
+            
+            <footer>Vortex VCF · Your WhatsApp Status Will Never Be The Same</footer>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
