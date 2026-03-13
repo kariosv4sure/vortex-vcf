@@ -8,7 +8,6 @@ Glass-morphic web app that collects contacts & builds hype for exclusive VCF dro
 
 ## ✨ Features
 
-- **Live Counter** – "X people in vortex" updates instantly
 - **Glass UI** – Sleek design with your background image
 - **Typewriter Hype** – Rotating messages that grab attention
 - **Mega Join Button** – Impossible to miss Telegram link
