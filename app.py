@@ -10,17 +10,40 @@ import csv
 from io import StringIO
 import vobject
 import secrets
+import sys
 
+# Load environment variables
 load_dotenv()
+
 app = Flask(__name__)
 
-# Hardcoded configuration
-app.config['SECRET_KEY'] = 'your-secret-key-here-change-this-in-production'  # Change this!
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///contacts.db'
+# ========== POSTGRESQL CONFIGURATION ==========
+# Get database URL from environment
+database_url = os.getenv('DATABASE_URL')
+
+# CRITICAL: Ensure we have a PostgreSQL URL
+if not database_url:
+    print("❌ FATAL ERROR: DATABASE_URL environment variable not set!")
+    print("Please set DATABASE_URL in your .env file")
+    sys.exit(1)
+
+# Handle Render's PostgreSQL URL format
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+# Configuration
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+if not app.config['SECRET_KEY']:
+    print("❌ FATAL ERROR: SECRET_KEY not set!")
+    sys.exit(1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=int(os.getenv('SESSION_LIFETIME_HOURS', 2)))
+
+print(f"✅ Connected to PostgreSQL database")
 
 # Initialize extensions
 db = SQLAlchemy(app)
@@ -29,10 +52,13 @@ login_manager.login_view = 'admin_login'
 login_manager.login_message = ''
 
 # ========== DATABASE MODELS ==========
+
 class Admin(UserMixin, db.Model):
+    __tablename__ = 'admins'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -41,12 +67,13 @@ class Admin(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 class Contact(db.Model):
+    __tablename__ = 'contacts'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     ip_address = db.Column(db.String(50))
-
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -58,24 +85,53 @@ class Contact(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return Admin.query.get(int(user_id))
+    """Load user by ID - using modern SQLAlchemy 2.0 syntax"""
+    return db.session.get(Admin, int(user_id))
 
-# Create tables and default admin
-with app.app_context():
-    db.create_all()
+# ========== DATABASE INITIALIZATION ==========
+# IMPORTANT: This preserves data! NO db.drop_all()!
 
-    # HARDCODED ADMIN CREDENTIALS
-    ADMIN_USERNAME = "CyberVRTX101"
-    ADMIN_PASSWORD = "$CyberVRTX@#10*2"
+def init_db():
+    """Initialize database - CREATE TABLES IF NOT EXISTS (NEVER DELETE DATA)"""
+    with app.app_context():
+        try:
+            # Create tables if they don't exist (SAFE - won't delete data)
+            print("📦 Creating tables if they don't exist...")
+            db.create_all()
+            print("✅ Tables ready")
+            
+            # Create admin only if not exists
+            admin_username = os.getenv('ADMIN_USERNAME')
+            admin_password = os.getenv('ADMIN_PASSWORD')
+            
+            if not admin_username or not admin_password:
+                print("❌ FATAL ERROR: ADMIN_USERNAME and ADMIN_PASSWORD must be set!")
+                sys.exit(1)
+            
+            # Check if admin exists before creating
+            admin = Admin.query.filter_by(username=admin_username).first()
+            if not admin:
+                admin = Admin(username=admin_username)
+                admin.set_password(admin_password)
+                db.session.add(admin)
+                db.session.commit()
+                print(f"✅ Admin created: {admin_username}")
+            else:
+                print(f"✅ Admin already exists: {admin_username}")
+            
+            print("🎉 Database initialized successfully!")
+            print("💾 Your data is SAFE - no tables were dropped!")
+            
+        except Exception as e:
+            print(f"❌ Database initialization failed: {e}")
+            sys.exit(1)
 
-    if not Admin.query.filter_by(username=ADMIN_USERNAME).first():
-        admin = Admin(username=ADMIN_USERNAME)
-        admin.set_password(ADMIN_PASSWORD)
-        db.session.add(admin)
-        db.session.commit()
-        print(f"✅ Admin created with username: {ADMIN_USERNAME}")
+# Initialize database
+print("🚀 Starting database initialization...")
+init_db()
 
 # ========== HELPER FUNCTIONS ==========
+
 def get_client_ip():
     """Get real client IP address"""
     if request.headers.get('X-Forwarded-For'):
@@ -96,7 +152,6 @@ def validate_name(name):
     name = name.strip()
     return 2 <= len(name) <= 50
 
-# ========== SIMPLE SPAM PREVENTION ==========
 def check_rate_limit(ip):
     """Check if IP has exceeded submission limit"""
     today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -104,9 +159,11 @@ def check_rate_limit(ip):
         Contact.ip_address == ip,
         Contact.timestamp >= today_start
     ).count()
-    return count < 3  # Max 3 per day
+    max_submissions = int(os.getenv('MAX_SUBMISSIONS_PER_DAY', 3))
+    return count < max_submissions
 
 # ========== PUBLIC ROUTES ==========
+
 @app.route('/')
 def index():
     """Main page - check if user joined channel first"""
@@ -119,7 +176,8 @@ def index():
 @app.route('/force-join')
 def force_join():
     """Force join page - users must join channel"""
-    return render_template('force-join.html', channel_link="https://t.me/vortexvcf")
+    channel_link = os.getenv('TELEGRAM_CHANNEL_LINK', 'https://t.me/vortexvcf')
+    return render_template('force-join.html', channel_link=channel_link)
 
 @app.route('/verify-join', methods=['POST'])
 def verify_join():
@@ -131,38 +189,37 @@ def verify_join():
 @app.route('/api/submit', methods=['POST'])
 def submit_contact():
     """Submit contact after joining channel"""
-    # Check if user joined channel first
     if not session.get('joined_channel'):
         return jsonify({'error': 'Please join channel first'}), 403
-    
+
     try:
         data = request.get_json()
         if not data:
             return jsonify({'error': 'Invalid data'}), 400
-        
+
         name = data.get('name', '').strip()
         phone = data.get('phone', '').strip()
-        
+
         # Validate inputs
         if not name or not phone:
             return jsonify({'error': 'Name and phone required'}), 400
-        
+
         if not validate_name(name):
             return jsonify({'error': 'Name must be between 2-50 characters'}), 400
-        
+
         if not validate_phone(phone):
             return jsonify({'error': 'Valid phone number required (7-15 digits)'}), 400
-        
+
         # Clean phone number
         clean_phone = re.sub(r'\D', '', phone)
-        
+
         # Get client IP
         ip = get_client_ip()
-        
+
         # Check rate limit
         if not check_rate_limit(ip):
-            return jsonify({'error': 'Daily limit reached (3 submissions max)'}), 429
-        
+            return jsonify({'error': f'Daily limit reached ({os.getenv("MAX_SUBMISSIONS_PER_DAY", 3)} submissions max)'}), 429
+
         # Save contact
         contact = Contact(
             name=name,
@@ -171,49 +228,52 @@ def submit_contact():
         )
         db.session.add(contact)
         db.session.commit()
-        
+
         # Get updated total
         total = Contact.query.count()
-        
+
         # Calculate remaining submissions
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         today_count = Contact.query.filter(
             Contact.ip_address == ip,
             Contact.timestamp >= today_start
         ).count()
-        remaining = 3 - today_count
-        
+        max_submissions = int(os.getenv('MAX_SUBMISSIONS_PER_DAY', 3))
+        remaining = max_submissions - today_count
+
         return jsonify({
             'success': True,
             'message': 'Contact saved successfully!',
             'total': total,
             'remaining': remaining
         }), 200
-        
+
     except Exception as e:
         print(f"Error: {e}")
+        db.session.rollback()
         return jsonify({'error': 'Server error occurred'}), 500
 
 # ========== ADMIN ROUTES ==========
+
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_login():
     """Admin login page"""
     if current_user.is_authenticated:
         return redirect(url_for('admin_dashboard'))
-    
+
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
+
         admin = Admin.query.filter_by(username=username).first()
-        
+
         if admin and admin.check_password(password):
             login_user(admin, remember=True)
             session.permanent = True
             return redirect(url_for('admin_dashboard'))
         else:
             return render_template('admin.html', error='Invalid credentials')
-    
+
     return render_template('admin.html')
 
 @app.route('/admin/dashboard')
@@ -222,12 +282,12 @@ def admin_dashboard():
     """Admin dashboard"""
     total_contacts = Contact.query.count()
     recent_contacts = Contact.query.order_by(Contact.timestamp.desc()).limit(10).all()
-    
+
     today = datetime.utcnow().date()
     today_contacts = Contact.query.filter(
         db.func.date(Contact.timestamp) == today
     ).count()
-    
+
     return render_template('dashboard.html',
                          total=total_contacts,
                          today=today_contacts,
@@ -245,11 +305,11 @@ def get_contacts():
 def export_csv():
     """Export contacts as CSV"""
     contacts = Contact.query.all()
-    
+
     si = StringIO()
     cw = csv.writer(si)
     cw.writerow(['ID', 'Name', 'Phone', 'Timestamp', 'IP Address'])
-    
+
     for contact in contacts:
         cw.writerow([
             contact.id,
@@ -258,7 +318,7 @@ def export_csv():
             contact.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
             contact.ip_address
         ])
-    
+
     output = si.getvalue()
     response = app.response_class(
         output,
@@ -272,14 +332,14 @@ def export_csv():
 def export_vcf():
     """Export contacts as VCF"""
     contacts = Contact.query.all()
-    
+
     vcf_content = ""
     for contact in contacts:
         v = vobject.vCard()
         v.add('fn').value = contact.name
         v.add('tel').value = contact.phone
         vcf_content += v.serialize()
-    
+
     response = app.response_class(
         vcf_content,
         mimetype='text/vcard',
@@ -287,7 +347,6 @@ def export_vcf():
     )
     return response
 
-# ========== STATS ROUTE (FIX THE 404 ERROR) ==========
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     """Get contact statistics for the frontend"""
@@ -315,4 +374,10 @@ def logout():
     return redirect(url_for('admin_login'))
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    port = int(os.getenv('PORT', 5000))
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(
+        debug=debug_mode,
+        host=os.getenv('HOST', '127.0.0.1'),
+        port=port
+    )

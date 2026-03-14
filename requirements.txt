@@ -1,8 +1,8 @@
 Flask
 Flask-SQLAlchemy
-Flask-Limiter
 Flask-Login
 python-dotenv
+Werkzeug
+psycopg2-binary
 vobject
 gunicorn
-requests
